@@ -12,6 +12,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 df = pd.read_csv("startup_funding.csv")
 
@@ -28,7 +29,7 @@ print(df.info())
 print(df.describe())
 print(df.isnull().sum())
 
-df = df.drop("Remarks",axis=1)
+# df = df.drop("Remarks",axis=1)
 
 print(df.isnull().sum())
 
@@ -40,9 +41,11 @@ df = df.dropna(subset=["CityLocation", "IndustryVertical", "SubVertical", "Inves
 print(df.isnull().sum())
 print(df.info())
 
+
+
 # Year wise funding trend
 df["Year"] = df["Date"].dt.year
-df_yearly = df.groupby("Year",as_index=False)["Amount in USD"].sum()
+df_yearly = df.groupby("Year", as_index=False)["Amount in USD"].sum()
 
 plt.bar(df_yearly["Year"], df_yearly["Amount in USD"])
 plt.xlabel("Year")
@@ -50,18 +53,57 @@ plt.ylabel("Total Funding")
 plt.title("Year-wise Total Funding")
 plt.show()
 
-# Cities deal Wise
-top_cities = df["CityLocation"].value_counts().head(10).index
-df_top_cities = df[df["CityLocation"].isin(top_cities)]
 
-plt.figure(figsize=(10, 6))
-sns.countplot(data=df_top_cities, x="CityLocation", order=top_cities, color="orange")
-plt.xlabel("City")
-plt.ylabel("Number of Offers")
-plt.title("Top 10 Cities by Number of Offers")
-plt.xticks(rotation=45)
+
+# Funding category Wise
+df["IndustryVertical"] = df["IndustryVertical"].str.strip()
+df_category = df.groupby("IndustryVertical", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
+
+plt.figure(figsize=(12, 6))
+sns.barplot(data=df_category, x="IndustryVertical", y="Amount in USD")
+plt.xlabel("Funding Category")
+plt.ylabel("Total Funding (USD)")
+plt.title("Industry-wise Total Funding")
+plt.xticks(rotation=45, ha="right")
 plt.tight_layout()
 plt.show()
 
-# Funding category Wise
+# Investment type Wise
+df["InvestmentType"] = df["InvestmentType"].str.strip()
+df_investment_type = df.groupby("InvestmentType", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
+
+
+plt.figure(figsize=(12, 7))
+sns.barplot(data=df_investment_type, x="Amount in USD", y="InvestmentType", palette="mako")
+plt.xlabel("Total Funding (USD)")
+plt.ylabel("Investment Type")
+plt.title("Top 10 Investment Types by Funding Volume")
+plt.tight_layout()
+plt.show()
+
+# Top funded startups
+
+df_top_startups =df.groupby("Startup Name", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
+
+
+plt.figure(figsize=(12, 7))
+sns.barplot(data=df_top_startups, x="Amount in USD", y="Startup Name", palette="viridis")
+plt.xlabel("Total Funding Received (USD)")
+plt.ylabel("Startup")
+plt.title("Top 10 Startups by Total Funding Received")
+plt.tight_layout()
+plt.show()
+
+# Top investors by funding volume
+
+df_top_investors = df.groupby("Investors Name", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
+
+
+plt.figure(figsize=(12, 7))
+sns.barplot(data=df_top_investors, x="Amount in USD", y="Investors Name", palette="rocket")
+plt.xlabel("Total Funding Invested (USD)")
+plt.ylabel("Investor")
+plt.title("Top 10 Investors by Funding Volume")
+plt.tight_layout()
+plt.show()
 
