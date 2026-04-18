@@ -1,87 +1,75 @@
-
-# 0   Sr No             891 non-null    int64
-#  1   Date              891 non-null    datetime64[us]
-#  2   Startup Name      891 non-null    str
-#  3   IndustryVertical  891 non-null    str
-#  4   SubVertical       891 non-null    str
-#  5   CityLocation      891 non-null    str
-#  6   Investors Name    891 non-null    str
-#  7   InvestmentType    891 non-null    str
-#  8   Amount in USD     891 non-null    int6
-
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+# from sklearn.metrics import mean_squared_error,t2_score
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 
-df = pd.read_csv("startup_funding.csv")
+# load data
+df = pd.read_csv(r"C:\Users\mayan\Downloads\startup_funding.csv")
 
-# Standardize CSV headers so the rest of the code can use cleaner names.
-df = df.rename(columns={
-    "Date dd/mm/yyyy": "Date",
-    "Industry Vertical": "IndustryVertical",
-    "City  Location": "CityLocation",
-    "InvestmentnType": "InvestmentType"
-})
+# basic cleaning
+df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+df['Year'] = df['Date'].dt.year
 
-print(df.head())
-print(df.info())
-print(df.describe())
-print(df.isnull().sum())
-
-# df = df.drop("Remarks",axis=1)
-
-print(df.isnull().sum())
-
-# df["Amount in USD"] = df["Amount in USD"].str.replace(",", "").str.strip(),errors=("coerce").fillna(0).astype(float)
-df["Amount in USD"] = pd.to_numeric(df["Amount in USD"].str.replace(",", "").str.strip(),errors="coerce").fillna(0).astype(int)
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-
-df = df.dropna(subset=["CityLocation", "IndustryVertical", "SubVertical", "InvestmentType", "Amount in USD", "Date","Investors Name"])
-print(df.isnull().sum())
-print(df.info())
+df['Amount in USD'] = df['Amount in USD'].astype(str).str.replace(',', '')
+df['Amount in USD'] = pd.to_numeric(df['Amount in USD'], errors='coerce')
 
 
+df = df.dropna(subset=['Amount in USD', 'Year'])
+print(df.columns)
+# -----------------------------
+# 1. Yearly total funding
+# -----------------------------
+yearly = df.groupby('Year')['Amount in USD'].sum()
 
-# Year wise funding trend
-df["Year"] = df["Date"].dt.year
-df_yearly = df.groupby("Year", as_index=False)["Amount in USD"].sum()
-
-plt.bar(df_yearly["Year"], df_yearly["Amount in USD"])
+plt.figure(figsize=(12, 7))
+plt.plot(yearly.index, yearly.values)
+plt.title("Yearly Total Funding")
 plt.xlabel("Year")
-plt.ylabel("Total Funding")
-plt.title("Year-wise Total Funding")
+plt.ylabel("Funding")
 plt.show()
 
 
+# -----------------------------
+# 2. Category wise funding
+# -----------------------------
+category = df.groupby('Industry Vertical')['Amount in USD'].sum()
+category = category.sort_values(ascending=False).head(10)
 
-# Funding category Wise
-df["IndustryVertical"] = df["IndustryVertical"].str.strip()
-df_category = df.groupby("IndustryVertical", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
-
-plt.figure(figsize=(12, 6))
-sns.barplot(data=df_category, x="IndustryVertical", y="Amount in USD")
-plt.xlabel("Funding Category")
-plt.ylabel("Total Funding (USD)")
-plt.title("Industry-wise Total Funding")
-plt.xticks(rotation=45, ha="right")
-plt.tight_layout()
+plt.figure(figsize=(12, 7))
+sns.barplot(x=category.index, y=category.values, palette="rocket")
+plt.title("Top Categories by Funding")
+plt.xticks(rotation=45)
 plt.show()
 
-# Investment type Wise
-df["InvestmentType"] = df["InvestmentType"].str.strip()
-df_investment_type = df.groupby("InvestmentType", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
+
+# -----------------------------
+# 3. Top 10 investors
+# -----------------------------
+df_top_investors = df.groupby("Investors Name", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
 
 
 plt.figure(figsize=(12, 7))
-sns.barplot(data=df_investment_type, x="Amount in USD", y="InvestmentType", palette="mako")
-plt.xlabel("Total Funding (USD)")
-plt.ylabel("Investment Type")
-plt.title("Top 10 Investment Types by Funding Volume")
+sns.barplot(data=df_top_investors, x="Amount in USD", y="Investors Name", palette="bright")
+plt.xlabel("Total Funding Invested (USD)")
+plt.ylabel("Investor")
+plt.title("Top 10 Investors by Funding Volume")
 plt.tight_layout()
 plt.show()
 
-# Top funded startups
+# -----------------------------
+# 4. Funding types
+# -----------------------------
+fund_type = df['InvestmentnType'].value_counts().head(10)
+
+plt.figure(figsize=(12, 7))
+plt.bar(fund_type.index, fund_type.values)
+plt.title("Funding Types")
+plt.xticks(rotation=45)
+plt.show()
+
 
 df_top_startups =df.groupby("Startup Name", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
 
@@ -94,16 +82,46 @@ plt.title("Top 10 Startups by Total Funding Received")
 plt.tight_layout()
 plt.show()
 
-# Top investors by funding volume
-
-df_top_investors = df.groupby("Investors Name", as_index=False)["Amount in USD"].sum().sort_values("Amount in USD", ascending=False).head(10)
-
-
+# 6 Cities with most startups
+city_counts = df['City  Location'].value_counts().head(10)
 plt.figure(figsize=(12, 7))
-sns.barplot(data=df_top_investors, x="Amount in USD", y="Investors Name", palette="rocket")
-plt.xlabel("Total Funding Invested (USD)")
-plt.ylabel("Investor")
-plt.title("Top 10 Investors by Funding Volume")
+sns.barplot(x=city_counts.values, y=city_counts.index, palette="magma")
+plt.xlabel("Number of Startups")
+plt.ylabel("City")
+plt.title("Top 10 Cities with Most Startups")
 plt.tight_layout()
 plt.show()
 
+# 7. Cities with most funding
+city_funding = df.groupby('City  Location')['Amount in USD'].sum().sort_values(ascending=False).head(10)
+plt.figure(figsize=(12, 7))
+sns.barplot(x=city_funding.values, y=city_funding.index, palette="coolwarm")
+plt.xlabel("Total Funding (USD)")
+plt.ylabel("City")
+plt.title("Top 10 Cities by Total Funding")
+plt.tight_layout()
+plt.show()
+
+
+count_year = df.groupby('Year').size()
+
+x = count_year.index.values
+y = count_year.values
+x = x.reshape(-1,1)
+model = LinearRegression()
+model.fit(x,y)
+y_pred = model.predict(x)
+
+plt.figure()
+plt.plot(x, y)
+plt.plot(x, y_pred)
+plt.legend(["Actual", "Predicted"])
+plt.title("Number of Investments Trend")
+plt.show()
+
+mse=mean_squared_error(y, y_pred)
+mae = mean_absolute_error(y, y_pred)
+r2=r2_score(y, y_pred)
+print("Mean Squared Error:", mse)
+print("Mean Absolute Error:", mae)
+print("R-squared:", r2)
