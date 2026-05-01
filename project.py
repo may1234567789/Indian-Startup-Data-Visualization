@@ -1,10 +1,9 @@
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from scipy.stats import norm
+
 
 # load data
 df = pd.read_csv(r"C:\Users\mayan\Downloads\startup_funding_extended.csv")
@@ -13,13 +12,19 @@ df = pd.read_csv(r"C:\Users\mayan\Downloads\startup_funding_extended.csv")
 print(df.columns)
 print(df.info())    
 print(df.describe())
+print(df.isnull().sum())
+print(df.shape)
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 df['Year'] = df['Date'].dt.year
 df['Amount in USD'] = df['Amount in USD'].astype(str).str.replace(',', '')
 df['Amount in USD'] = pd.to_numeric(df['Amount in USD'], errors='coerce')
 
 df = df.dropna(subset=['Amount in USD', 'Year'])
-
+sns.boxplot(y=df['Amount in USD'])
+plt.title("Boxplot of Amount in USD")
+plt.show()
+print(df.isnull().sum())
+print(df.shape)
 
 # Yearwise Total Funding
 yearly = df.groupby('Year')['Amount in USD'].sum()
@@ -37,7 +42,7 @@ plt.figure(figsize=(12, 7))
 sns.barplot(x=category.index, y=category.values, palette="rocket")
 plt.title("Top Categories by Funding")
 plt.ylabel("Funding USD (in billion)")
-plt.xticks(rotation=45)
+plt.xticks(rotation=25)
 plt.show()
 
 # Top Investors
@@ -47,18 +52,15 @@ sns.barplot(data=df_top_investors, x="Investors Name", y="Amount in USD", palett
 plt.xlabel("Total Money Invested USD (in billion)")
 plt.ylabel("Investor")
 plt.title("Top 10 Investors by Funding Volume")
-plt.xticks(rotation=45)
+plt.xticks(rotation=20)
 plt.show()
 
 # Types of Funding Received
 fund_type = df['InvestmentnType'].value_counts().head(10)
-plt.figure(figsize=(12, 7))
-# plt.bar(fund_type.index, fund_type.values)
 data = fund_type.values
 labels = fund_type.index
-explode = [0,0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]  
-# plt.title("Funding Types")
-# plt.xticks(rotation=45)
+explode = [0,0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+plt.figure(figsize=(12, 7))  
 plt.pie(data, labels=labels,  autopct='%.0f%%', explode=explode)
 plt.show()
 
@@ -78,7 +80,6 @@ sns.barplot(x=city_counts.values, y=city_counts.index, palette="magma")
 plt.xlabel("Number of Startups")
 plt.ylabel("City")
 plt.title("Top 10 Cities with Most Startups")
-plt.xticks(rotation=45)
 plt.tight_layout()
 plt.show()
 
@@ -94,16 +95,19 @@ plt.show()
 
 
 count_year = df.groupby('Year').size()
-x = count_year.index.values
-y = count_year.values
+x = count_year.index.values[:6]
+y = count_year.values[:6]
+print("Years:", x)
+print("Actual counts:", y)
 x = x.reshape(-1,1)
 model = LinearRegression()
 model.fit(x,y)
 y_pred = model.predict(x)
+print("Predicted counts:", y_pred)
 
-plt.figure()
-plt.plot(x, y)
-plt.plot(x, y_pred)
+plt.figure(figsize=(12, 7))
+sns.scatterplot(x=x.flatten(), y=y)
+plt.plot(x, y_pred, color='red')
 plt.legend(["Actual", "Predicted"])
 plt.title("Number of Investments Trend")
 plt.show()
